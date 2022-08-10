@@ -48,6 +48,6 @@ jobs:
           key: ${{ secrets.PROD_PRIVATE_KEY }}
           port: 22
           script: |
-            cd zo-sygnal && /usr/bin/git checkout develop && /usr/bin/git pull 
-            cd zo-sygnal && /usr/bin/docker build -t zolabs/sygnal -f docker/Dockerfile .
+            cd /home/ubuntu/zo-sygnal && /usr/bin/git checkout develop && /usr/bin/git pull 
+            cd /home/ubuntu/zo-sygnal && /usr/bin/docker build -t zolabs/sygnal -f docker/Dockerfile .
             sudo systemctl restart matrix-sygnal.service

@@ -1,0 +1,53 @@
+name: CI-Prod
+
+# Controls when the workflow will run
+on:
+  # Triggers the workflow on push or pull request events but only for the main branch
+  push:
+    branches: [ main ]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+env:
+  ## Sets environment variable
+  ENV: prod
+  # AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID_DEV }}
+  # AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY_DEV }}
+  # AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
+  # DOMAIN: 0111101001101111.xyz
+  # MATRIX_IP: 18.220.134.153
+  # MATRIX: ${{ secrets.MATRIX_DEV }}
+  SERVER_PRIVATE_KEY: ${{ secrets.PROD_PRIVATE_KEY }}
+  SERVER_PUBLIC_DNS: ${{ secrets.PROD_SERVER_PUBLIC_DNS }}
+  # SERVER_ANSIBLE_CONFIG_COMMAND: cd zo-backend/config/matrix-docker-ansible-deploy
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  build:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      # - uses: actions/checkout@v3
+
+      # - name: Buid and Deploy changes to DEV
+      #   run: |
+      #     echo "$SERVER_PRIVATE_KEY" > zo-dev.pem && chmod 600 zo-dev.pem
+      #     ssh -i zo-dev.pem -o "StrictHostKeyChecking no" $SERVER_PUBLIC_DNS && '/home/ubuntu/.local/bin/ansible-playbook -i /home/ubuntu/zo-backend/config/matrix-docker-ansible-deploy/inventory/hosts /home/ubuntu/zo-backend/config/matrix-docker-ansible-deploy/setup.yml --tags=setup-all,start'
+      #     sleep 5; echo bar'
+
+      - name: Buid and Deploy Sygnal to Prod
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.PROD_SERVER_PUBLIC_DNS }}
+          username: ubuntu
+          key: ${{ secrets.PROD_PRIVATE_KEY }}
+          port: 22
+          script: |
+            cd zo-sygnal && /usr/bin/git checkout develop && /usr/bin/git pull 
+            cd zo-sygnal && /usr/bin/docker build -t zolabs/sygnal -f docker/Dockerfile .
+            sudo systemctl restart matrix-sygnal.service

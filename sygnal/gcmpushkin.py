@@ -370,8 +370,7 @@ class GcmPushkin(ConcurrencyLimitedPushkin):
             body["data"] = data
             body["notification"] = {
                 "title": n.room_name,
-                "body": n.content,
-                "data": data
+                "body": n.content
             }
             body["priority"] = "normal" if n.prio == "low" else "high"
 

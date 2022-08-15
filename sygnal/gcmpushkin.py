@@ -366,16 +366,15 @@ class GcmPushkin(ConcurrencyLimitedPushkin):
                 "Authorization": ["key=%s" % (self.api_key,)],
             }
 
-            log.warning('content = %s', n.content)
 
-            content_json = json.dump(n.content)
-            content_obj = json.load(content_json)
+            content_json = json.dumps(n.content)
+            content_obj = json.loads(content_json)
 
             body = self.base_request_body.copy()
             body["data"] = data
             body["notification"] = {
                 "title": n.sender_display_name,
-                "body": content_obj.body
+                "body": content_obj['body']
             }
             body["priority"] = "normal" if n.prio == "low" else "high"
 

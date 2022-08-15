@@ -369,7 +369,7 @@ class GcmPushkin(ConcurrencyLimitedPushkin):
             body = self.base_request_body.copy()
             body["data"] = data
             body["notification"] = {
-                "title": n.room_id,
+                "title": n.sender_display_name,
                 "body": "Open app to read messages"
             }
             body["priority"] = "normal" if n.prio == "low" else "high"

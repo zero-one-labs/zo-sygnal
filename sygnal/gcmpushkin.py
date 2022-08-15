@@ -366,8 +366,8 @@ class GcmPushkin(ConcurrencyLimitedPushkin):
                 "Authorization": ["key=%s" % (self.api_key,)],
             }
 
-            content_json = json.dumps(n.content)
-            content_obj = json.loads(content_json)
+            content_json = json.dump(n.content)
+            content_obj = json.load(content_json)
 
             body = self.base_request_body.copy()
             body["data"] = data

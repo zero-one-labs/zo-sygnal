@@ -370,7 +370,7 @@ class GcmPushkin(ConcurrencyLimitedPushkin):
             body["data"] = data
             body["notification"] = {
                 "title": n.sender_display_name,
-                "body": json.dumps(n.content) 
+                "body": n.content.body
             }
             body["priority"] = "normal" if n.prio == "low" else "high"
 

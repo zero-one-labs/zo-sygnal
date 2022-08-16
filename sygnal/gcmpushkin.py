@@ -376,7 +376,7 @@ class GcmPushkin(ConcurrencyLimitedPushkin):
                 "title": n.sender_display_name,
                 "body": content_obj['body']
             }
-            body["priority"] = "normal" if n.prio == "low" else "high"
+            body["priority"] = "high"
 
             for retry_number in range(0, MAX_TRIES):
                 if len(pushkeys) == 1:

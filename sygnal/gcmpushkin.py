@@ -374,7 +374,9 @@ class GcmPushkin(ConcurrencyLimitedPushkin):
             body["data"] = data
             body["notification"] = {
                 "title": n.sender_display_name,
-                "body": content_obj['body']
+                "body": content_obj['body'],
+                "sound": "alert",
+                "android_channel_id": "zo_push"
             }
             body["priority"] = "high"
 

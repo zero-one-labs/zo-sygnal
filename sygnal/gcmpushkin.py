@@ -470,6 +470,9 @@ class GcmPushkin(ConcurrencyLimitedPushkin):
                     data[attr] = data[attr][0:MAX_BYTES_PER_FIELD]
 
         data["prio"] = "high"
+        data["click_action"] = "FLUTTER_NOTIFICATION_CLICK"
+        data["status"] = "done"
+
         if n.prio == "low":
             data["prio"] = "normal"
 

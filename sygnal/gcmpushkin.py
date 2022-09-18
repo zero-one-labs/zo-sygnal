@@ -375,7 +375,7 @@ class GcmPushkin(ConcurrencyLimitedPushkin):
             body["notification"] = {
                 "title": n.sender_display_name,
                 "body": content_obj['body'],
-                "sound": "alert",
+                "sound": "alert.caf",
                 "android_channel_id": "zo_push"
             }
             body["priority"] = "high"

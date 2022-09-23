@@ -366,13 +366,19 @@ class GcmPushkin(ConcurrencyLimitedPushkin):
                 "Authorization": ["key=%s" % (self.api_key,)],
             }
 
+
+            content_json = json.dumps(n.content)
+            content_obj = json.loads(content_json)
+
             body = self.base_request_body.copy()
             body["data"] = data
             body["notification"] = {
-                "title": "1 unread chat (s)",
-                "body": "Open app to read messages"
+                "title": n.sender_display_name,
+                "body": content_obj['body'],
+                "sound": "alert.caf",
+                "android_channel_id": "zo_push"
             }
-            body["priority"] = "normal" if n.prio == "low" else "high"
+            body["priority"] = "high"
 
             for retry_number in range(0, MAX_TRIES):
                 if len(pushkeys) == 1:
@@ -464,6 +470,9 @@ class GcmPushkin(ConcurrencyLimitedPushkin):
                     data[attr] = data[attr][0:MAX_BYTES_PER_FIELD]
 
         data["prio"] = "high"
+        data["click_action"] = "FLUTTER_NOTIFICATION_CLICK"
+        data["status"] = "done"
+
         if n.prio == "low":
             data["prio"] = "normal"
 

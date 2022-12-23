@@ -369,12 +369,16 @@ class GcmPushkin(ConcurrencyLimitedPushkin):
 
             content_json = json.dumps(n.content)
             content_obj = json.loads(content_json)
+            body_message = "New message"
+            
+            if hasattr(content_obj, 'body'): 
+                body_message = content_obj['body']
 
             body = self.base_request_body.copy()
             body["data"] = data
             body["notification"] = {
                 "title": n.sender_display_name,
-                "body": content_obj['body'],
+                "body": body_message,
                 "sound": "alert.caf",
                 "android_channel_id": "zo_push"
             }

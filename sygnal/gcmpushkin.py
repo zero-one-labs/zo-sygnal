@@ -371,9 +371,9 @@ class GcmPushkin(ConcurrencyLimitedPushkin):
             content_obj = json.loads(content_json)
             body_message = "New message"
 
-            if content_obj.has_key('body'): 
+            if 'body' in content_obj: 
                 body_message = content_obj['body']
-            elif n.content is not None and n.content.has_key('body'):
+            elif n.content is not None and 'body' in n.content:
                 body_message = n.content['body']
 
             body = self.base_request_body.copy()

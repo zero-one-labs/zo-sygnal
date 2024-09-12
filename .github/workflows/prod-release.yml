@@ -1,0 +1,34 @@
+name: "Zo Sygnal release prod"
+
+on:
+  push:
+    tags: 'v*.*.*'
+    branches: v1
+
+jobs:
+  release_prod:
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - name: ACR Build
+        id: acr
+        uses: NishantZo/acr-build@v1.2
+        with:
+          dockerfile: docker/Dockerfile
+          service_principal: ${{ secrets.SERVICE_PRINCIPAL_PROD }}
+          service_principal_password: ${{ secrets.SERVICE_PRINCIPAL_PASSWORD_PROD }}
+          tenant: ${{ secrets.TENANT_ID_PROD }}
+          git_access_token: ${{ secrets.GIT_ACCESS_TOKEN }}
+          registry: "zoprodimages"
+          repository: "zo"
+          image: "sygnal"
+          tag: ${{ github.ref_name }}
+          branch: "v1"
+          folder: "./"
+    
+      - name: Deploy Container Instance
+        uses: azure/login@v1
+        with:
+          creds: '{"clientId":"${{ secrets.SERVICE_PRINCIPAL_PROD }}","clientSecret":"${{ secrets.SERVICE_PRINCIPAL_PASSWORD_PROD }}","subscriptionId":"${{ secrets.SUBSCRIPTION_ID_PROD }}","tenantId":"${{ secrets.TENANT_ID_PROD }}"}'
+      - run: |
+          az container delete --name "zo-sygnal-new" --resource-group synapse --yes;az container create -g synapse --name zo-sygnal-new --ip-address Private --cpu 1 --memory 2 --image zoprodimages.azurecr.io/zo/sygnal:${{ github.ref_name }} --ports 6000 --vnet synapse-vnet --subnet appservices --restart-policy Always --registry-username ${{ secrets.REGISTRY_USERNAME_PROD }} --registry-password ${{ secrets.REGISTRY_PASSWORD_PROD }} --environment-variables 'SYGNAL_CONF=/data/sygnal.yaml' --azure-file-volume-account-name zodevapp --azure-file-volume-account-key ${{ secrets.AZURE_STORAGE_ACCOUNT_KEY_DEV }} --azure-file-volume-share-name synapse/sygnal --azure-file-volume-mount-path /data

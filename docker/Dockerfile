@@ -83,6 +83,6 @@ FROM docker.io/library/python:${PYTHON_VERSION}-slim-bookworm
 
 COPY --from=builder /install /usr/local
 
-EXPOSE 5000/tcp
+EXPOSE 6000/tcp
 
 ENTRYPOINT ["python", "-m", "sygnal.sygnal"]

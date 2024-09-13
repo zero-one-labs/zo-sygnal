@@ -25,10 +25,34 @@ jobs:
       #     tag: ${{ github.ref_name }}
       #     branch: "v1"
       #     folder: "./"
+      - uses: actions/checkout@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+  
+      - name: Login to Azure
+        uses: azure/login@v1
+        with:
+          creds: '{"clientId":"${{ secrets.SERVICE_PRINCIPAL_PROD }}","clientSecret":"${{ secrets.SERVICE_PRINCIPAL_PASSWORD_PROD }}","subscriptionId":"${{ secrets.SUBSCRIPTION_ID_PROD }}","tenantId":"${{ secrets.TENANT_ID_PROD }}"}'
+  
+      - name: Login to ACR
+        uses: azure/docker-login@v1
+        with:
+          login-server: ${{ secrets.REGISTRY_USERNAME_PROD }}.azurecr.io
+          username: ${{ secrets.REGISTRY_USERNAME_PROD }}
+          password: ${{ secrets.REGISTRY_PASSWORD_PROD }}
+  
+      - name: Build and push
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: docker/Dockerfile
+          push: true
+          tags: ${{ secrets.REGISTRY_USERNAME_PROD }}.azurecr.io/zo/sygnal:${{ github.sha }}
     
       - name: Deploy Container Instance
         uses: azure/login@v1
         with:
           creds: '{"clientId":"${{ secrets.SERVICE_PRINCIPAL_PROD }}","clientSecret":"${{ secrets.SERVICE_PRINCIPAL_PASSWORD_PROD }}","subscriptionId":"${{ secrets.SUBSCRIPTION_ID_PROD }}","tenantId":"${{ secrets.TENANT_ID_PROD }}"}'
       - run: |
-          az container delete --name "zo-sygnal-new" --resource-group synapse --yes;az container create -g synapse --name zo-sygnal-new --ip-address Private --cpu 1 --memory 2 --image hub.docker.com/matrixdotorg/sygnal:latest --ports 6000 --vnet synapse-vnet --subnet appservices --restart-policy Always --registry-username ${{ secrets.REGISTRY_USERNAME_PROD }} --registry-password ${{ secrets.REGISTRY_PASSWORD_PROD }} --environment-variables 'SYGNAL_CONF=/data/sygnal.yaml' --azure-file-volume-account-name zodevapp --azure-file-volume-account-key ${{ secrets.AZURE_STORAGE_ACCOUNT_KEY_DEV }} --azure-file-volume-share-name synapse/sygnal --azure-file-volume-mount-path /data
+          az container delete --name "zo-sygnal-new" --resource-group synapse --yes;az container create -g synapse --name zo-sygnal-new --ip-address Private --cpu 1 --memory 2 --image zoprodimages.azurecr.io/zo/sygnal:${{ github.sha }} --ports 6000 --vnet synapse-vnet --subnet appservices --restart-policy Always --registry-username ${{ secrets.REGISTRY_USERNAME_PROD }} --registry-password ${{ secrets.REGISTRY_PASSWORD_PROD }} --environment-variables 'SYGNAL_CONF=/data/sygnal.yaml' --azure-file-volume-account-name zodevapp --azure-file-volume-account-key ${{ secrets.AZURE_STORAGE_ACCOUNT_KEY_DEV }} --azure-file-volume-share-name synapse/sygnal --azure-file-volume-mount-path /data

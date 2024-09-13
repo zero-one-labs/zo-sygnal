@@ -575,6 +575,31 @@ class GcmPushkin(ConcurrencyLimitedPushkin):
 
             body = self.base_request_body.copy()
             body["data"] = data
+            content_json = json.dumps(n.content)
+            content_obj = json.loads(content_json)
+            body["notification"] = {
+                "title": n.sender_display_name,
+                "body": content_obj['body'],
+            }
+
+            body["android"] = {
+                "notification": {
+                    "sound": "default",
+                    "channel_id": "zo_push"
+                }
+            }
+
+            body["apns"] = {
+                "payload": {
+                    "aps": {
+                        "alert": {
+                            "title": n.sender_display_name,
+                            "body": content_obj['body']
+                        },
+                        "sound": "alert.caf"
+                    }
+                }
+            }
             if self.api_version is APIVersion.Legacy:
                 body["priority"] = "normal" if n.prio == "low" else "high"
             elif self.api_version is APIVersion.V1:

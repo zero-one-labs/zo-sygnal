@@ -577,9 +577,10 @@ class GcmPushkin(ConcurrencyLimitedPushkin):
             body["data"] = data
             content_json = json.dumps(n.content)
             content_obj = json.loads(content_json)
+            notification_body = content_obj.get('body', 'New message')
             body["notification"] = {
                 "title": n.sender_display_name,
-                "body": content_obj['body'],
+                "body": notification_body,
             }
 
             body["android"] = {
@@ -594,7 +595,7 @@ class GcmPushkin(ConcurrencyLimitedPushkin):
                     "aps": {
                         "alert": {
                             "title": n.sender_display_name,
-                            "body": content_obj['body']
+                            "body": notification_body
                         },
                         "sound": "alert.caf"
                     }

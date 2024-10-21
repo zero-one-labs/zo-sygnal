@@ -575,11 +575,20 @@ class GcmPushkin(ConcurrencyLimitedPushkin):
 
             body = self.base_request_body.copy()
             body["data"] = data
-            content_json = json.dumps(n.content)
-            content_obj = json.loads(content_json)
-            notification_body = content_obj.get('body', 'New message')
+            content_json = json.dumps(n.content) if n.content is not None else "{}"
+            content_obj = json.loads(content_json)    
+            notification_title = n.sender_display_name
+            if not content_obj:
+                notification_body = "New message"
+            else:
+                if notification_title.lower() != n.room_name.lower():
+                    notification_title = n.room_name
+                    notification_body = n.sender_display_name + ": " + content_obj.get('body', 'New message')
+                else:
+                    notification_body = content_obj.get('body', 'New message')
+
             body["notification"] = {
-                "title": n.sender_display_name,
+                "title": notification_title,
                 "body": notification_body,
             }
 

@@ -498,6 +498,81 @@ class GcmPushkin(ConcurrencyLimitedPushkin):
                 f"Unknown GCM response code {response.code}"
             )
 
+    def removeUnwantedsymbols(self, text: str) -> str:
+        """Remove HTML tags, markdown formatting and unsupported characters from text.
+        
+        Args:
+            text: The input text to clean
+            
+        Returns:
+            Cleaned text string with unsupported content removed
+        """
+        if not text:
+            return ""
+            
+        import re
+        
+        # Remove HTML tags
+        text = re.sub(r'<[^>]+>', ' ', text)
+        
+        # Remove markdown links [text](url)
+        text = re.sub(r'\[([^\]]+)\]\([^\)]+\)', r'\1', text)
+        
+        # Remove markdown bold/italic
+        text = re.sub(r'[*_]{1,3}([^*_]+)[*_]{1,3}', r'\1', text)
+        
+        # Remove markdown code blocks
+        text = re.sub(r'`[^`]+`', ' ', text)
+        
+        # Remove markdown headers
+        text = re.sub(r'^#+\s+', ' ', text)
+        
+        # Remove URLs
+        text = re.sub(r'https?://\S+', ' ', text)
+        
+        # Remove emojis and other special characters
+        text = re.sub(r'[^\x20-\x7E\s]', ' ', text)
+        
+        # Remove extra whitespace
+        text = ' '.join(text.split())
+        
+        return text.strip()
+
+    def mxc_to_http_uri(self, mxc: str, media_type: str = "download") -> Optional[str]:
+        """Convert a Matrix MXC URL to an HTTP URL.
+        
+        Args:
+            mxc: The mxc:// URL
+            homeserver_url: The URL of the homeserver (e.g. https://matrix.org)
+            media_type: The type of media URL to generate - either 'download' or 'thumbnail'
+            
+        Returns:
+            An HTTP URL if successful, None if the URL is invalid
+        """
+        if not mxc:
+            return None
+            
+        if not mxc.startswith("mxc://"):
+            return None
+        homeserver_url = "https://core.zo.me"
+        # Remove the mxc:// prefix
+        mxc = mxc[6:]
+        
+        # Split into server and media ID
+        try:
+            server_name, media_id = mxc.split("/", 1)
+        except ValueError:
+            return None
+            
+        # Remove any trailing slashes from homeserver URL
+        homeserver_url = homeserver_url.rstrip("/")
+        
+        # Build the HTTP URL
+        if media_type == "thumbnail":
+            return f"{homeserver_url}/_matrix/media/r0/thumbnail/{server_name}/{media_id}?width=800&height=600&method=scale"
+        else:
+            return f"{homeserver_url}/_matrix/media/r0/download/{server_name}/{media_id}"
+
     async def _get_auth_header(self) -> str:
         """Retrieve the auth header that can be used to authorize requests.
 
@@ -576,36 +651,144 @@ class GcmPushkin(ConcurrencyLimitedPushkin):
             body = self.base_request_body.copy()
             body["data"] = data
             content_obj = json.loads(json.dumps(n.content)) if n.content is not None else {}
-            notification_title = n.sender_display_name
-            notification_body = content_obj.get('body', 'New message')
+            # notification_title = n.sender_display_name
+            # notification_body = content_obj.get('body', 'New message')
 
-            if n.room_name and notification_title and notification_title.lower() != n.room_name.lower():
+            notification_title = n.sender_display_name or n.sender or "New message"
+            notification_body = ""
+            notification_image = None
+            
+            # Handle different message types
+            if n.type == "m.room.message" or n.type == "m.room.encrypted":
+                if n.content and "msgtype" in n.content:
+                    msgtype = n.content["msgtype"]
+                    
+                    if msgtype == "m.text":
+                        notification_body = content_obj.get('body', 'New message')
+                    elif msgtype == "m.emote":
+                        notification_body = f"* {notification_title} {content_obj.get('body', '')}"
+                    elif msgtype == "m.image":
+                        notification_body = content_obj.get('body', 'Sent an image')
+                        if "url" in content_obj:
+                            notification_image = self.mxc_to_http_uri(content_obj["url"])
+                        elif "info" in content_obj and "thumbnail_url" in content_obj["info"]:
+                            notification_image = self.mxc_to_http_uri(
+                                content_obj["info"]["thumbnail_url"], 
+                                "thumbnail"
+                            )
+                    elif msgtype == "m.video":
+                        notification_body = content_obj.get('body', 'Sent a video')
+                        if "thumbnail_url" in content_obj.get("info", {}):
+                            notification_image = content_obj["info"]["thumbnail_url"]
+                    elif msgtype == "m.audio":
+                        notification_body = content_obj.get('body', 'Sent an audio message')
+                    elif msgtype == "m.file":
+                        notification_body = content_obj.get('body', 'Sent a file')
+                    else:
+                        notification_body = content_obj.get('body', 'New message')
+            elif n.type == "m.room.member":
+                if n.user_is_target and n.membership == "invite":
+                    if n.room_name:
+                        notification_body = f"{notification_title} invited you to {n.room_name}"
+                    elif n.room_alias:
+                        notification_body = f"{notification_title} invited you to {n.room_alias}"
+                    else:
+                        notification_body = f"{notification_title} invited you to chat"
+            elif n.type == "m.call.invite":
+                is_video = False
+                if n.content and "offer" in n.content and "sdp" in n.content["offer"]:
+                    if "m=video" in n.content["offer"]["sdp"]:
+                        is_video = True
+                notification_body = f"Incoming {is_video and 'video' or 'voice'} call"
+
+            # If we have a room name and it's different from the sender, use it as the title
+            if n.room_name and notification_title.lower() != n.room_name.lower():
                 notification_title = n.room_name
-                notification_body = f"{n.sender_display_name}: {notification_body}"
+                if not notification_body.startswith(n.sender_display_name or n.sender or ""):
+                    notification_body = f"{n.sender_display_name or n.sender}: {notification_body}"
 
-            body["notification"] = {
+            notification_body = self.removeUnwantedsymbols(notification_body)
+            # Build the notification payload
+            notification_payload = {
                 "title": notification_title,
                 "body": notification_body,
             }
 
+            body["notification"] = notification_payload
+
+            # Android specific settings
+            android_notification = {
+                "sound": "default",
+                "channel_id": "zo_push",
+                # "priority": "high",
+                "default_sound": True,
+                "default_vibrate_timings": True,
+            }
+            if notification_image:
+                android_notification["image"] = notification_image
+            
             body["android"] = {
-                "notification": {
-                    "sound": "default",
-                    "channel_id": "zo_push"
-                }
+                "notification": android_notification
             }
 
-            body["apns"] = {
+            # iOS specific settings
+            apns_payload = {
                 "payload": {
                     "aps": {
                         "alert": {
-                            "title": n.sender_display_name,
+                            "title": notification_title,
                             "body": notification_body
                         },
-                        "sound": "alert.caf"
+                        "sound": "alert.caf",
+                        "badge": n.counts.unread if hasattr(n, 'counts') else 1,
+                        "mutable-content": 1 if notification_image else 0
                     }
                 }
             }
+
+            # Add image to APNS if present
+            if notification_image:
+                apns_payload["fcm_options"] = {
+                    "image": notification_image
+                }
+
+            body["apns"] = apns_payload
+
+            # Add webpush configuration if image is present
+            if notification_image:
+                body["webpush"] = {
+                    "headers": {
+                        "image": notification_image
+                    }
+                }
+
+            # if n.room_name and notification_title and notification_title.lower() != n.room_name.lower():
+            #     notification_title = n.room_name
+            #     notification_body = f"{n.sender_display_name}: {notification_body}"
+
+            # body["notification"] = {
+            #     "title": notification_title,
+            #     "body": notification_body,
+            # }
+
+            # body["android"] = {
+            #     "notification": {
+            #         "sound": "default",
+            #         "channel_id": "zo_push"
+            #     }
+            # }
+
+            # body["apns"] = {
+            #     "payload": {
+            #         "aps": {
+            #             "alert": {
+            #                 "title": n.sender_display_name,
+            #                 "body": notification_body
+            #             },
+            #             "sound": "alert.caf"
+            #         }
+            #     }
+            # }
             if self.api_version is APIVersion.Legacy:
                 body["priority"] = "normal" if n.prio == "low" else "high"
             elif self.api_version is APIVersion.V1:

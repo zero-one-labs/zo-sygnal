@@ -106,7 +106,7 @@ typing-extensions = ">=3.7.4"
 
 [tool.poetry.urls]
 "homepage" = "https://github.com/matrix-org/sygnal"
-"documentation" = "https://github.com/matrix-org/sygnal/tree/main/docs"
+"Documentation" = "https://github.com/matrix-org/sygnal/tree/main/docs"
 "repository" = "https://github.com/matrix-org/sygnal.git"
 "changelog" = "https://github.com/matrix-org/sygnal/blob/main/CHANGELOG.md"
 

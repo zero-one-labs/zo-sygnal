@@ -828,7 +828,7 @@ class GcmPushkin(ConcurrencyLimitedPushkin):
                         "gcm_dispatch_try", tags=span_tags, child_of=span_parent
                     ) as span:
                         print("notification body")
-                        print(json.dumps(body))
+                        print(body)
                         new_failed, new_pushkeys = await self._request_dispatch(
                             n, log, body, headers, pushkeys, span
                         )

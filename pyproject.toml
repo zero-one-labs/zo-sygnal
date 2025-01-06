@@ -105,10 +105,10 @@ types-PyYAML = ">=6.0.0"
 typing-extensions = ">=3.7.4"
 
 [tool.poetry.urls]
-"homepage" = "https://github.com/matrix-org/sygnal"
+"Homepage" = "https://github.com/matrix-org/sygnal"
 "Documentation" = "https://github.com/matrix-org/sygnal/tree/main/docs"
-"repository" = "https://github.com/matrix-org/sygnal.git"
-"changelog" = "https://github.com/matrix-org/sygnal/blob/main/CHANGELOG.md"
+"Repository" = "https://github.com/matrix-org/sygnal.git"
+"Changelog" = "https://github.com/matrix-org/sygnal/blob/main/CHANGELOG.md"
 
 [tool.poetry.scripts]
 sygnal = "sygnal.sygnal:main"

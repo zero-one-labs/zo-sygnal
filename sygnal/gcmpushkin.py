@@ -685,7 +685,8 @@ class GcmPushkin(ConcurrencyLimitedPushkin):
                     elif msgtype == "m.file":
                         notification_body = content_obj.get('body', 'Sent a file')
                     else:
-                        notification_body = content_obj.get('body', 'New message')
+                        print("message type", msgtype)
+                        notification_body = content_obj.get('body', '')
             elif n.type == "m.room.member":
                 if n.user_is_target and n.membership == "invite":
                     if n.room_name:
@@ -706,6 +707,9 @@ class GcmPushkin(ConcurrencyLimitedPushkin):
                 notification_title = n.room_name
                 if not notification_body.startswith(n.sender_display_name or n.sender or ""):
                     notification_body = f"{n.sender_display_name or n.sender}: {notification_body}"
+
+            if notification_body == "":
+                return failed
 
             notification_body = self.removeUnwantedsymbols(notification_body)
             # Build the notification payload
@@ -740,7 +744,7 @@ class GcmPushkin(ConcurrencyLimitedPushkin):
                             "body": notification_body
                         },
                         "sound": "alert.caf",
-                        "badge": n.counts.unread if hasattr(n, 'counts') else 1,
+                        # "badge": n.counts.unread if hasattr(n, 'counts') else 1,
                         "mutable-content": 1 if notification_image else 0
                     }
                 }
@@ -827,8 +831,6 @@ class GcmPushkin(ConcurrencyLimitedPushkin):
                     with self.sygnal.tracer.start_span(
                         "gcm_dispatch_try", tags=span_tags, child_of=span_parent
                     ) as span:
-                        print("notification body")
-                        print(json.dumps(body))
                         new_failed, new_pushkeys = await self._request_dispatch(
                             n, log, body, headers, pushkeys, span
                         )

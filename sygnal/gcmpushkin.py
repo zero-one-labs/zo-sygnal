@@ -695,6 +695,13 @@ class GcmPushkin(ConcurrencyLimitedPushkin):
                         notification_body = f"{notification_title} invited you to {n.room_alias}"
                     else:
                         notification_body = f"{notification_title} invited you to chat"
+                elif n.user_is_target and n.membership == "join":
+                    if n.room_name:
+                        notification_body = f"You joined {n.room_name}"
+                    elif n.room_alias:
+                        notification_body = f"You joined {n.room_alias}"
+                    else:
+                        notification_body = f"You joined chat"
             elif n.type == "m.call.invite":
                 is_video = False
                 if n.content and "offer" in n.content and "sdp" in n.content["offer"]:
